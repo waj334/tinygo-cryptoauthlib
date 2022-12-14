@@ -5,20 +5,41 @@ import (
 )
 
 type packet struct {
-	buf              []byte
-	inputDataLength  int
-	outputDataLength int
+	buf []byte
 }
 
 func newReadCommand(buf []byte) *packet {
 	p := &packet{
-		buf:              buf,
-		inputDataLength:  0,
-		outputDataLength: 32,
+		buf: buf,
 	}
 
 	p.setOpcode(ATCA_READ)
-	p.setCount(uint8(ATCA_CMD_SIZE_MIN + p.inputDataLength))
+	p.setCount(uint8(ATCA_CMD_SIZE_MIN))
+
+	return p
+}
+
+func newSHACommand(buf []byte, mode uint8, length uint16) *packet {
+	p := &packet{
+		buf: buf,
+	}
+
+	p.setOpcode(ATCA_SHA)
+	p.setParam1(mode)
+	p.setParam2(length)
+
+	switch mode & SHA_MODE_MASK {
+	case SHA_MODE_SHA256_START, SHA_MODE_HMAC_START, 0x03:
+		p.setCount(uint8(ATCA_CMD_SIZE_MIN))
+	case SHA_MODE_SHA256_UPDATE:
+		p.setCount(uint8(ATCA_CMD_SIZE_MIN + int(length)))
+	case SHA_MODE_SHA256_END, SHA_MODE_HMAC_END:
+		p.setCount(uint8(ATCA_CMD_SIZE_MIN + int(length)))
+	case SHA_MODE_READ_CONTEXT:
+		p.setCount(uint8(ATCA_CMD_SIZE_MIN))
+	case SHA_MODE_WRITE_CONTEXT:
+		p.setCount(uint8(ATCA_CMD_SIZE_MIN + int(length)))
+	}
 
 	return p
 }
@@ -48,11 +69,14 @@ func (p *packet) setParam2(val uint16) {
 	p.buf[ATCA_PARAM2_IDX+1] = byte(val >> 8)
 }
 
+func (p *packet) data() []byte {
+	return p.buf[ATCA_DATA_IDX:]
+}
+
 //go:noinline
 func (p *packet) execute(t Transport) (err error) {
 	// Calculate length of the command packet
 	cmdEndPos := int(p.count()) - ATCA_CRC_SIZE
-	println("cmdEndPos =", cmdEndPos)
 
 	// Calculate the CRC of the command packet to be sent and store it in the last 2 bytes
 	crc16(p.buf[:cmdEndPos], p.buf[cmdEndPos:cmdEndPos+2])
@@ -67,7 +91,8 @@ func (p *packet) execute(t Transport) (err error) {
 	// TODO: Begin retry loop
 	// Wake up the device
 	if err = t.WakeUp(); err != nil {
-		return
+		// TODO: Handle if device failed to wake
+		//return
 	}
 
 	// Send the command packet
@@ -117,7 +142,9 @@ func (p *packet) execute(t Transport) (err error) {
 
 	// Check for error
 	if p.buf[0] == 0x04 {
-		return mapCommandStatus(p.buf[1])
+		if err = mapCommandStatus(p.buf[1]); err != StatusSuccess {
+			return
+		}
 	}
 
 	//TODO: End retry loop

@@ -39,6 +39,7 @@ func (i *i2cTransport) Send(wordAddress byte, data []byte) (err error) {
 }
 
 func (i *i2cTransport) WakeUp() (err error) {
+	err = StatusWakeFailed
 	for retry := 0; retry < 20; retry++ {
 		// Set the bus speed to slow af. The device requires the SDA pin to be low for a specific amount of time
 		i.bus.SetBaudRate(100_000)
@@ -65,11 +66,11 @@ func (i *i2cTransport) WakeUp() (err error) {
 
 		if bytes.Equal(wake[:], expectedResponse) {
 			return nil
-		} else if !bytes.Equal(wake[:], selftestFailResp) {
+		} else if bytes.Equal(wake[:], selftestFailResp) {
 			err = StatusSelftestError
 			break
 		}
 	}
 
-	return StatusWakeFailed
+	return
 }

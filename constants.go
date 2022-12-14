@@ -115,13 +115,13 @@ const (
 	ATCA_KEY_CONFIG_X509_ID_MASK          uint32 = 0x03 << ATCA_KEY_CONFIG_X509_ID_SHIFT
 
 	/* Common Cryptographic Definitions */
-	ATCA_SHA256_BLOCK_SIZE   uint32 = 64
-	ATCA_SHA256_DIGEST_SIZE  uint32 = 32
-	ATCA_AES128_BLOCK_SIZE   uint32 = 16
-	ATCA_AES128_KEY_SIZE     uint32 = 16
-	ATCA_ECCP256_KEY_SIZE    uint32 = 32
-	ATCA_ECCP256_PUBKEY_SIZE uint32 = 64
-	ATCA_ECCP256_SIG_SIZE    uint32 = 64
+	ATCA_SHA256_BLOCK_SIZE   int = 64
+	ATCA_SHA256_DIGEST_SIZE  int = 32
+	ATCA_AES128_BLOCK_SIZE   int = 16
+	ATCA_AES128_KEY_SIZE     int = 16
+	ATCA_ECCP256_KEY_SIZE    int = 32
+	ATCA_ECCP256_PUBKEY_SIZE int = 64
+	ATCA_ECCP256_SIG_SIZE    int = 64
 
 	ATCA_ZONE_CONFIG uint8 = 0x00
 	ATCA_ZONE_OTP    uint8 = 0x01
@@ -204,13 +204,13 @@ const (
 	ATCA_KEY_SIZE      int    = 32  //!< size of a symmetric SHA key
 	RSA2048_KEY_SIZE   uint16 = 256 //!< size of a RSA private key
 
-	ATCA_RSP_SIZE_MIN uint16 = 4  //!< minimum number of bytes in response
-	ATCA_RSP_SIZE_4   uint16 = 7  //!< size of response packet containing 4 bytes data
-	ATCA_RSP_SIZE_72  uint16 = 75 //!< size of response packet containing 64 bytes data
-	ATCA_RSP_SIZE_64  uint16 = 67 //!< size of response packet containing 64 bytes data
-	ATCA_RSP_SIZE_32  uint16 = 35 //!< size of response packet containing 32 bytes data
-	ATCA_RSP_SIZE_16  uint16 = 19 //!< size of response packet containing 16 bytes data
-	ATCA_RSP_SIZE_MAX uint16 = 75 //!< maximum size of response packet (GenKey and Verify command)
+	ATCA_RSP_SIZE_MIN int = 4  //!< minimum number of bytes in response
+	ATCA_RSP_SIZE_4   int = 7  //!< size of response packet containing 4 bytes data
+	ATCA_RSP_SIZE_72  int = 75 //!< size of response packet containing 64 bytes data
+	ATCA_RSP_SIZE_64  int = 67 //!< size of response packet containing 64 bytes data
+	ATCA_RSP_SIZE_32  int = 35 //!< size of response packet containing 32 bytes data
+	ATCA_RSP_SIZE_16  int = 19 //!< size of response packet containing 16 bytes data
+	ATCA_RSP_SIZE_MAX int = 75 //!< maximum size of response packet (GenKey and Verify command)
 
 	OUTNONCE_SIZE uint8 = 32 //!< Size of the OutNonce response expected from several commands
 
