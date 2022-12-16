@@ -109,6 +109,9 @@ func (s *SHA256Context) endHMAC(t Transport, target uint8) (digest []byte, err e
 }
 
 func (d *Device) SHA256(input []byte) (output []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	var ctx SHA256Context
 	if err = ctx.startSHA(d.transport); err != nil {
 		return
@@ -125,6 +128,9 @@ func (d *Device) SHA256(input []byte) (output []byte, err error) {
 }
 
 func (d *Device) HMAC(input []byte, keySlot uint16, target uint8) (output []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	var ctx SHA256Context
 	if err = ctx.startHMAC(d.transport, keySlot); err != nil {
 		return

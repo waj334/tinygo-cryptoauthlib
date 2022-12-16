@@ -6,6 +6,9 @@ const (
 )
 
 func (d *Device) ReadZone(zone uint8, slot uint16, blockNo uint8, offset uint8, data []byte) (err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	var address uint16
 
 	// The input slice must NOT be nil and MUST be exactly 4 OR 32 bytes long
@@ -40,6 +43,9 @@ func (d *Device) ReadZone(zone uint8, slot uint16, blockNo uint8, offset uint8, 
 }
 
 func (d *Device) ReadEncrypted(keyId uint16, block uint8, encKey []byte, encKeyId uint16, numIn [20]byte) (data []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	// TODO
 	return
 }

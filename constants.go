@@ -558,7 +558,7 @@ const (
 	RANDOM_COUNT                = ATCA_CMD_SIZE_MIN //!< Random command packet size
 	RANDOM_SEED_UPDATE    uint8 = 0x00              //!< Random mode for automatic seed update
 	RANDOM_NO_SEED_UPDATE uint8 = 0x01              //!< Random mode for no seed update
-	RANDOM_NUM_SIZE       uint8 = 32                //!< Number of bytes in the data packet of a random command
+	RANDOM_NUM_SIZE       int   = 32                //!< Number of bytes in the data packet of a random command
 	RANDOM_RSP_SIZE             = ATCA_RSP_SIZE_32  //!< Random command response packet size
 	/** @} */
 

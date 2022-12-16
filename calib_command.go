@@ -2,6 +2,7 @@ package cryptoauthlib
 
 import (
 	"time"
+	"unsafe"
 )
 
 type packet struct {
@@ -40,6 +41,60 @@ func newSHACommand(buf []byte, mode uint8, length uint16) *packet {
 	case SHA_MODE_WRITE_CONTEXT:
 		p.setCount(uint8(ATCA_CMD_SIZE_MIN + int(length)))
 	}
+
+	return p
+}
+
+func newGenKeyCommand(buf []byte, mode uint8, keyId uint16) *packet {
+	p := &packet{buf: buf}
+
+	p.setOpcode(ATCA_GENKEY)
+	p.setParam1(mode)
+	p.setParam2(keyId)
+
+	if mode&GENKEY_MODE_PUBKEY_DIGEST != 0 {
+		p.setCount(uint8(GENKEY_COUNT_DATA))
+	} else {
+		p.setCount(uint8(GENKEY_COUNT))
+	}
+
+	return p
+}
+
+func newNonceCommand(buf []byte, mode uint8, zero uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_NONCE)
+	p.setParam1(mode)
+	p.setParam2(zero)
+
+	switch mode & NONCE_MODE_MASK {
+	case NONCE_MODE_SEED_UPDATE, NONCE_MODE_NO_SEED_UPDATE:
+		p.setCount(uint8(NONCE_COUNT_SHORT))
+	case NONCE_MODE_PASSTHROUGH:
+		if mode&NONCE_MODE_INPUT_LEN_MASK == NONCE_MODE_INPUT_LEN_64 {
+			p.setCount(uint8(NONCE_COUNT_LONG_64))
+		} else {
+			p.setCount(uint8(NONCE_COUNT_LONG))
+		}
+	}
+
+	return p
+}
+
+func newSignCommand(buf []byte, mode uint8, keyId uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_SIGN)
+	p.setParam1(mode)
+	p.setParam2(keyId)
+	p.setCount(uint8(SIGN_COUNT))
+
+	return p
+}
+
+func newRandomCommand(buf []byte) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_RANDOM)
+	p.setCount(uint8(RANDOM_COUNT))
 
 	return p
 }
@@ -90,10 +145,7 @@ func (p *packet) execute(t Transport) (err error) {
 
 	// TODO: Begin retry loop
 	// Wake up the device
-	if err = t.WakeUp(); err != nil {
-		// TODO: Handle if device failed to wake
-		//return
-	}
+	t.WakeUp()
 
 	// Send the command packet
 	if err = t.Send(wordAddress, p.buf[:p.count()]); err != nil {
@@ -102,29 +154,38 @@ func (p *packet) execute(t Transport) (err error) {
 
 	//TODO: End retry loop
 
-	// Delay
-	time.Sleep(time.Millisecond * 10)
-
 	// TODO: Begin retry loop
 	// Zero-out the data buffer
 	for i := range p.buf {
 		p.buf[i] = 0
 	}
 
-	// Send word address
+	// The result is likely to NOT be ready to receive right away. Delay for some time
+	time.Sleep(time.Millisecond * 10)
+
+	// Send word address until the device responds with an ack or the deadline is exceeded
 	// TODO: The word address is non-zero for SWI transport
 	wordAddress = 0
-	if err = t.Send(wordAddress, nil); err != nil {
-		return
+
+	deadline := time.Now().Add(time.Millisecond * 500)
+	for {
+		if time.Now().Before(deadline) {
+			if err = t.Send(wordAddress, nil); err != nil {
+				time.Sleep(time.Millisecond * 10)
+				continue
+			}
+			break
+		} else {
+			// Return the error
+			return
+		}
 	}
 
 	// Receive response length from device
-	var tmp [1]uint8
-	if err = t.Receive(wordAddress, tmp[:]); err != nil {
+	var responseLength uint8
+	if err = t.Receive(wordAddress, unsafe.Slice(&responseLength, 1)); err != nil {
 		return
 	}
-
-	responseLength := int(tmp[0])
 
 	// Receive the response
 	if err = t.Receive(wordAddress, p.buf[:responseLength]); err != nil {
@@ -134,7 +195,7 @@ func (p *packet) execute(t Transport) (err error) {
 	// Check crc
 	var crc [2]byte
 	dataCrc := p.buf[responseLength-2:]
-	crc16(p.buf[:responseLength-ATCA_CRC_SIZE], crc[:])
+	crc16(p.buf[:int(responseLength)-ATCA_CRC_SIZE], crc[:])
 
 	if dataCrc[0] != crc[0] || dataCrc[1] != crc[1] {
 		return StatusRxCrcError
