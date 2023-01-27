@@ -4,7 +4,7 @@ func (d *Device) Random() (output []byte, err error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	buf := make([]byte, ATCA_BLOCK_SIZE+ATCA_CMD_SIZE_MIN)
+	buf := make([]byte, ATCA_BLOCK_SIZE+RANDOM_COUNT)
 	p := newRandomCommand(buf)
 
 	if err = p.execute(d.transport); err != nil {

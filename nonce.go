@@ -1,5 +1,7 @@
 package cryptoauthlib
 
+import "crypto/sha256"
+
 func (d *Device) Challenge(num []byte) (err error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -80,4 +82,38 @@ func nonceBase(t Transport, mode uint8, param2 uint16, num []byte) (result []byt
 	}
 
 	return
+}
+
+func swNonce(mode uint8, zero uint16, num []byte, randIn []byte, tempKeyIn *tempKey) (randOut []byte, tempKeyOut *tempKey, err error) {
+	if len(num) == 0 {
+		return nil, nil, StatusBadParam
+	}
+
+	switch mode & NONCE_MODE_MASK {
+	case NONCE_MODE_SEED_UPDATE, NONCE_MODE_NO_SEED_UPDATE:
+		tempKeyIn.is64 = false
+		if zero&NONCE_ZERO_CALC_MASK == NONCE_ZERO_CALC_TEMPKEY {
+			copy(tempKeyIn.value[:], randIn)
+		} else {
+			pos := 0
+			buf := make([]byte, 55)
+			pos += copy(buf, randIn[:RANDOM_NUM_SIZE])
+			pos += copy(buf[pos:], num[:NONCE_NUMIN_SIZE])
+			buf[pos] = ATCA_NONCE
+			buf[pos+1] = mode
+
+			// Calculate SHA256
+			dig := sha256.Sum256(buf)
+			copy(tempKeyIn.value[:], dig[:])
+
+			// Update tempKey flags
+			tempKeyIn.sourceFlag = 0
+			tempKeyIn.keyId = 0
+			tempKeyIn.genDigData = 0
+			tempKeyIn.noMacFlag = 0
+			tempKeyIn.valid = true
+		}
+	}
+
+	return randIn, tempKeyOut, nil
 }

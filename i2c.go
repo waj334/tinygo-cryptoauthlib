@@ -17,21 +17,19 @@ type i2cTransport struct {
 	deviceAddress uint8
 	bus           I2C
 	mutex         sync.Mutex
+	baud          uint32
 }
 
-func NewI2CTransport(deviceAddress uint8, bus I2C) Transport {
+func NewI2CTransport(deviceAddress uint8, bus I2C, baud uint32) Transport {
 	return &i2cTransport{
 		deviceAddress: deviceAddress >> 1,
 		bus:           bus,
+		baud:          baud,
 	}
 }
 
 func (i *i2cTransport) Receive(wordAddress byte, data []byte) (err error) {
 	return i.bus.ReadRegister(i.deviceAddress, wordAddress, data)
-}
-
-func (i *i2cTransport) ReceiveRaw(data []byte) (err error) {
-	return i.bus.Tx(uint16(i.deviceAddress), nil, data)
 }
 
 func (i *i2cTransport) Send(wordAddress byte, data []byte) (err error) {
@@ -42,20 +40,20 @@ func (i *i2cTransport) WakeUp() (err error) {
 	err = StatusWakeFailed
 	for retry := 0; retry < 20; retry++ {
 		// Set the bus speed to slow af. The device requires the SDA pin to be low for a specific amount of time
-		i.bus.SetBaudRate(100_000)
+		//i.bus.SetBaudRate(100_000)
+		i.bus.SetBaudRate(1)
 
 		// Send zeros to wake the device
 		i.bus.WriteRegister(0x00, 0x00, []byte{0x00})
 
 		// Reset the bus speed
-		// TODO: Reset this to what was originally configured
-		i.bus.SetBaudRate(1_000_000)
+		i.bus.SetBaudRate(i.baud)
 
 		//delay
 		time.Sleep(time.Microsecond * 1500)
 
 		// Receive wake status
-		var wake [4]byte
+		wake := make([]byte, 4)
 		if err = i.bus.ReadRegister(i.deviceAddress, 0x00, wake[:]); err != nil {
 			continue
 		}

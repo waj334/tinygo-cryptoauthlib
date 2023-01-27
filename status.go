@@ -132,7 +132,7 @@ func (s Status) Error() string {
 	}
 }
 
-func mapCommandStatus(code byte) Status {
+func commandStatus(code byte) Status {
 	switch code {
 	case 0x00:
 		return StatusSuccess

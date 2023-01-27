@@ -133,8 +133,8 @@ const (
 
 	/* command definitions */
 
-	ATCA_CMD_SIZE_MIN     int   = 7
-	ATCA_CMD_SIZE_MAX     int   = 4*36 + 7
+	ATCA_CMD_SIZE_MIN           = 7
+	ATCA_CMD_SIZE_MAX           = 151
 	CMD_STATUS_SUCCESS    uint8 = 0x00
 	CMD_STATUS_WAKEUP     uint8 = 0x11
 	CMD_STATUS_BYTE_PARSE uint8 = 0x03
@@ -159,7 +159,7 @@ const (
 	ATCA_SIGN         uint8 = 0x41 //!< Sign command op-code
 	ATCA_UPDATE_EXTRA uint8 = 0x20 //!< UpdateExtra command op-code
 	ATCA_VERIFY       uint8 = 0x45 //!< GenKey command op-code
-	ATCA_WRITE        uint8 = 0x12 //!< Write command op-code
+	ATCA_WRITE        uint8 = 0x12 //!< write command op-code
 	ATCA_ECDH         uint8 = 0x43 //!< ECDH command op-code
 	ATCA_COUNTER      uint8 = 0x24 //!< Counter command op-code
 	ATCA_SHA          uint8 = 0x47 //!< SHA command op-code
@@ -169,19 +169,19 @@ const (
 	ATCA_SELFTEST     uint8 = 0x77 //!< Self test command op-code
 
 	/** \name Definitions of Data and Packet Sizes */
-	ATCA_BLOCK_SIZE              int = 32                             //!< size of a block
-	ATCA_WORD_SIZE               int = 4                              //!< size of a word
-	ATCA_PUB_KEY_PAD             int = 4                              //!< size of the public key pad
-	ATCA_SERIAL_NUM_SIZE         int = 9                              //!< number of bytes in the device serial number
-	ATCA_RSP_SIZE_VAL            int = 7                              //!< size of response packet containing four bytes of data
-	ATCA_KEY_COUNT               int = 16                             //!< number of keys
-	ATCA_ECC_CONFIG_SIZE         int = 128                            //!< size of configuration zone
-	ATCA_SHA_CONFIG_SIZE         int = 88                             //!< size of configuration zone
-	ATCA_ECC204_CONFIG_SIZE      int = 64                             //!< size of ECC204 configuration zone
-	ATCA_ECC204_CONFIG_SLOT_SIZE int = 16                             //!< size of ECC204 configuration slot size
-	ATCA_OTP_SIZE                int = 64                             //!< size of OTP zone
-	ATCA_DATA_SIZE               int = ATCA_KEY_COUNT * ATCA_KEY_SIZE //!< size of data zone
-	ATCA_AES_GFM_SIZE            int = ATCA_BLOCK_SIZE                //!< size of GFM data
+	ATCA_BLOCK_SIZE              = 32                             //!< size of a block
+	ATCA_WORD_SIZE               = 4                              //!< size of a word
+	ATCA_PUB_KEY_PAD             = 4                              //!< size of the public key pad
+	ATCA_SERIAL_NUM_SIZE         = 9                              //!< number of bytes in the device serial number
+	ATCA_RSP_SIZE_VAL            = 7                              //!< size of response packet containing four bytes of data
+	ATCA_KEY_COUNT               = 16                             //!< number of keys
+	ATCA_ECC_CONFIG_SIZE         = 128                            //!< size of configuration zone
+	ATCA_SHA_CONFIG_SIZE         = 88                             //!< size of configuration zone
+	ATCA_ECC204_CONFIG_SIZE      = 64                             //!< size of ECC204 configuration zone
+	ATCA_ECC204_CONFIG_SLOT_SIZE = 16                             //!< size of ECC204 configuration slot size
+	ATCA_OTP_SIZE                = 64                             //!< size of OTP zone
+	ATCA_DATA_SIZE               = ATCA_KEY_COUNT * ATCA_KEY_SIZE //!< size of data zone
+	ATCA_AES_GFM_SIZE            = ATCA_BLOCK_SIZE                //!< size of GFM data
 
 	ATCA_CHIPMODE_OFFSET           uint8 = 19   //!< ChipMode byte offset within the configuration zone
 	ATCA_CHIPMODE_I2C_ADDRESS_FLAG uint8 = 0x01 //!< ChipMode I2C Address in UserExtraAdd flag
@@ -198,11 +198,11 @@ const (
 	ATCA_CRC_SIZE        int = 2                               //!< Number of bytes in the command packet CRC
 	ATCA_PACKET_OVERHEAD     = ATCA_COUNT_SIZE + ATCA_CRC_SIZE //!< Number of bytes in the command packet
 
-	ATCA_PUB_KEY_SIZE  int    = 64  //!< size of a p256 public key
-	ATCA_PRIV_KEY_SIZE int    = 32  //!< size of a p256 private key
-	ATCA_SIG_SIZE      int    = 64  //!< size of a p256 signature
-	ATCA_KEY_SIZE      int    = 32  //!< size of a symmetric SHA key
-	RSA2048_KEY_SIZE   uint16 = 256 //!< size of a RSA private key
+	ATCA_PUB_KEY_SIZE  = 64  //!< size of a p256 public key
+	ATCA_PRIV_KEY_SIZE = 32  //!< size of a p256 private key
+	ATCA_SIG_SIZE      = 64  //!< size of a p256 signature
+	ATCA_KEY_SIZE      = 32  //!< size of a symmetric SHA key
+	RSA2048_KEY_SIZE   = 256 //!< size of a RSA private key
 
 	ATCA_RSP_SIZE_MIN int = 4  //!< minimum number of bytes in response
 	ATCA_RSP_SIZE_4   int = 7  //!< size of response packet containing 4 bytes data
@@ -233,7 +233,7 @@ const (
 	/** \name Definitions for Zone and Address Parameters
 	  @{ */
 	ATCA_ZONE_MASK           uint8  = 0x03   //!< Zone mask
-	ATCA_ZONE_ENCRYPTED      uint8  = 0x40   //!< Zone bit 6 set: Write is encrypted with an unlocked data zone.
+	ATCA_ZONE_ENCRYPTED      uint8  = 0x40   //!< Zone bit 6 set: write is encrypted with an unlocked data zone.
 	ATCA_ZONE_READWRITE_32   uint8  = 0x80   //!< Zone bit 7 set: Access 32 bytes, otherwise 4 bytes.
 	ATCA_ADDRESS_MASK_CONFIG uint16 = 0x001F //!< Address bits 5 to 7 are 0 for Configuration zone.
 	ATCA_ADDRESS_MASK_OTP    uint16 = 0x000F //!< Address bits 4 to 7 are 0 for OTP zone.
@@ -292,15 +292,15 @@ const (
 
 	/** \name Definitions for the Counter command
 	  @{ */
-	COUNTER_COUNT                 = ATCA_CMD_SIZE_MIN
-	COUNTER_MODE_IDX              = ATCA_PARAM1_IDX   //!< Counter command index for mode
-	COUNTER_KEYID_IDX             = ATCA_PARAM2_IDX   //!< Counter command index for key id
-	COUNTER_MODE_MASK      uint8  = 0x01              //!< Counter mode bits 1 to 7 are 0
-	COUNTER_MAX_VALUE      uint32 = 2097151           //!< Counter maximum value of the counter
-	COUNTER_MODE_READ      uint8  = 0x00              //!< Counter command mode for reading
-	COUNTER_MODE_INCREMENT uint8  = 0x01              //!< Counter command mode for incrementing
-	COUNTER_RSP_SIZE              = ATCA_RSP_SIZE_4   //!< Counter command response packet size
-	COUNTER_SIZE                  = ATCA_RSP_SIZE_MIN //!< Counter size in binary
+	COUNTER_COUNT                = ATCA_CMD_SIZE_MIN
+	COUNTER_MODE_IDX             = ATCA_PARAM1_IDX   //!< Counter command index for mode
+	COUNTER_KEYID_IDX            = ATCA_PARAM2_IDX   //!< Counter command index for key id
+	COUNTER_MODE_MASK      uint8 = 0x01              //!< Counter mode bits 1 to 7 are 0
+	COUNTER_MAX_VALUE            = 2097151           //!< Counter maximum value of the counter
+	COUNTER_MODE_READ      uint8 = 0x00              //!< Counter command mode for reading
+	COUNTER_MODE_INCREMENT uint8 = 0x01              //!< Counter command mode for incrementing
+	COUNTER_RSP_SIZE             = ATCA_RSP_SIZE_4   //!< Counter command response packet size
+	COUNTER_SIZE                 = ATCA_RSP_SIZE_MIN //!< Counter size in binary
 	/** @} */
 
 	/** \name Definitions for the DeriveKey Command
@@ -491,7 +491,7 @@ const (
 	MAC_MODE_INCLUDE_OTP_64    uint8 = 0x20              //!< MAC mode bit   5: include first 64 OTP bits
 	MAC_MODE_INCLUDE_SN        uint8 = 0x40              //!< MAC mode bit   6: include serial number
 	MAC_CHALLENGE_SIZE         uint8 = 32                //!< MAC size of challenge
-	MAC_SIZE                   uint8 = 32                //!< MAC size of response
+	MAC_SIZE                   int   = 32                //!< MAC size of response
 	MAC_MODE_MASK              uint8 = 0x77              //!< MAC mode bits 3 and 7 are 0.
 	MAC_RSP_SIZE                     = ATCA_RSP_SIZE_32  //!< MAC command response packet size
 	/** @} */
@@ -699,19 +699,19 @@ const (
 	VERIFY_RSP_SIZE_MAC                  = ATCA_RSP_SIZE_32  //!< Verify command response packet size with validating MAC
 	/** @} */
 
-	/** \name Definitions for the Write Command
+	/** \name Definitions for the write Command
 	  @{ */
-	WRITE_ZONE_IDX             = ATCA_PARAM1_IDX   //!< Write command index for zone
-	WRITE_ADDR_IDX             = ATCA_PARAM2_IDX   //!< Write command index for address
-	WRITE_VALUE_IDX            = ATCA_DATA_IDX     //!< Write command index for data
-	WRITE_MAC_VS_IDX    uint16 = 9                 //!< Write command index for MAC following short data
-	WRITE_MAC_VL_IDX    uint16 = 37                //!< Write command index for MAC following long data
-	WRITE_MAC_SIZE      uint16 = 32                //!< Write MAC size
-	WRITE_ZONE_MASK     uint8  = 0xC3              //!< Write zone bits 2 to 5 are 0.
-	WRITE_ZONE_WITH_MAC uint8  = 0x40              //!< Write zone bit 6: write encrypted with MAC
-	WRITE_ZONE_OTP      uint8  = 1                 //!< Write zone id OTP
-	WRITE_ZONE_DATA     uint8  = 2                 //!< Write zone id data
-	WRITE_RSP_SIZE             = ATCA_RSP_SIZE_MIN //!< Write command response packet size
+	WRITE_ZONE_IDX            = ATCA_PARAM1_IDX   //!< write command index for zone
+	WRITE_ADDR_IDX            = ATCA_PARAM2_IDX   //!< write command index for address
+	WRITE_VALUE_IDX           = ATCA_DATA_IDX     //!< write command index for data
+	WRITE_MAC_VS_IDX          = 9                 //!< write command index for MAC following short data
+	WRITE_MAC_VL_IDX          = 37                //!< write command index for MAC following long data
+	WRITE_MAC_SIZE            = 32                //!< write MAC size
+	WRITE_ZONE_MASK     uint8 = 0xC3              //!< write zone bits 2 to 5 are 0.
+	WRITE_ZONE_WITH_MAC uint8 = 0x40              //!< write zone bit 6: write encrypted with MAC
+	WRITE_ZONE_OTP      uint8 = 1                 //!< write zone id OTP
+	WRITE_ZONE_DATA     uint8 = 2                 //!< write zone id data
+	WRITE_RSP_SIZE            = ATCA_RSP_SIZE_MIN //!< write command response packet size
 )
 
 // go uint32 = :inin

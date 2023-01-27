@@ -2,7 +2,6 @@ package cryptoauthlib
 
 import (
 	"time"
-	"unsafe"
 )
 
 type packet struct {
@@ -16,7 +15,6 @@ func newReadCommand(buf []byte) *packet {
 
 	p.setOpcode(ATCA_READ)
 	p.setCount(uint8(ATCA_CMD_SIZE_MIN))
-
 	return p
 }
 
@@ -87,7 +85,6 @@ func newSignCommand(buf []byte, mode uint8, keyId uint16) *packet {
 	p.setParam1(mode)
 	p.setParam2(keyId)
 	p.setCount(uint8(SIGN_COUNT))
-
 	return p
 }
 
@@ -95,6 +92,91 @@ func newRandomCommand(buf []byte) *packet {
 	p := &packet{buf: buf}
 	p.setOpcode(ATCA_RANDOM)
 	p.setCount(uint8(RANDOM_COUNT))
+	return p
+}
+
+func newEcdhCommand(buf []byte, mode uint8, keyId uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_ECDH)
+	p.setParam1(mode)
+	p.setParam2(keyId)
+	p.setCount(ECDH_COUNT)
+	return p
+}
+
+func newGenDigCommand(buf []byte, zone uint8, keyId uint16, otherData []byte) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_GENDIG)
+	p.setParam1(zone)
+	p.setParam2(keyId)
+
+	if zone == GENDIG_ZONE_SHARED_NONCE {
+		p.setCount(uint8(GENDIG_COUNT + ATCA_BLOCK_SIZE))
+	} else if zone == GENDIG_ZONE_DATA && len(otherData) == ATCA_WORD_SIZE {
+		p.setCount(uint8(GENDIG_COUNT + ATCA_WORD_SIZE))
+	} else {
+		p.setCount(uint8(GENDIG_COUNT))
+	}
+
+	return p
+}
+
+func newVerifyCommand(buf []byte, mode uint8, keyId uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_VERIFY)
+	p.setParam1(mode)
+	p.setParam2(keyId)
+
+	switch mode & VERIFY_MODE_MASK {
+	case VERIFY_MODE_STORED:
+		p.setCount(uint8(VERIFY_256_STORED_COUNT))
+	case VERIFY_MODE_VALIDATE_EXTERNAL, VERIFY_MODE_EXTERNAL:
+		p.setCount(uint8(VERIFY_256_EXTERNAL_COUNT))
+	case VERIFY_MODE_VALIDATE, VERIFY_MODE_INVALIDATE:
+		p.setCount(uint8(VERIFY_256_VALIDATE_COUNT))
+	}
+
+	return p
+}
+
+func newWriteCommand(buf []byte, zone uint8, address uint16, mac []byte) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_WRITE)
+	p.setParam1(zone)
+	p.setParam2(address)
+
+	count := ATCA_CMD_SIZE_MIN
+
+	if zone&ATCA_ZONE_READWRITE_32 != 0 {
+		count += ATCA_BLOCK_SIZE
+	} else {
+		count += ATCA_WORD_SIZE
+	}
+
+	if len(mac) != 0 {
+		count += WRITE_MAC_SIZE
+	}
+
+	p.setCount(uint8(count))
+	return p
+}
+
+func newUpdateExtraCommand(buf []byte, mode uint8, value uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_UPDATE_EXTRA)
+	p.setParam1(mode)
+	p.setParam2(value)
+	p.setCount(UPDATE_COUNT)
+
+	return p
+}
+
+func newLockCommand(buf []byte, mode uint8, summary uint16) *packet {
+	p := &packet{buf: buf}
+	p.setOpcode(ATCA_LOCK)
+	p.setParam1(mode)
+	p.setParam2(summary)
+	p.setCount(LOCK_COUNT)
 
 	return p
 }
@@ -130,11 +212,15 @@ func (p *packet) data() []byte {
 
 //go:noinline
 func (p *packet) execute(t Transport) (err error) {
+	if int(p.count()) > len(p.buf) {
+		return StatusBadParam
+	}
+
 	// Calculate length of the command packet
 	cmdEndPos := int(p.count()) - ATCA_CRC_SIZE
 
 	// Calculate the CRC of the command packet to be sent and store it in the last 2 bytes
-	crc16(p.buf[:cmdEndPos], p.buf[cmdEndPos:cmdEndPos+2])
+	crc16(p.buf[:cmdEndPos], p.buf[cmdEndPos:])
 
 	// Set the register based on the mode of transport
 	var wordAddress byte
@@ -182,10 +268,11 @@ func (p *packet) execute(t Transport) (err error) {
 	}
 
 	// Receive response length from device
-	var responseLength uint8
-	if err = t.Receive(wordAddress, unsafe.Slice(&responseLength, 1)); err != nil {
+	var responseLength int
+	if err = t.Receive(wordAddress, p.buf); err != nil {
 		return
 	}
+	responseLength = int(p.buf[0])
 
 	// Receive the response
 	if err = t.Receive(wordAddress, p.buf[:responseLength]); err != nil {
@@ -195,20 +282,22 @@ func (p *packet) execute(t Transport) (err error) {
 	// Check crc
 	var crc [2]byte
 	dataCrc := p.buf[responseLength-2:]
-	crc16(p.buf[:int(responseLength)-ATCA_CRC_SIZE], crc[:])
 
+	// Calculate CRC of data section of response
+	crc16(p.buf[:responseLength-ATCA_CRC_SIZE], crc[:])
+
+	// The CRCs must match
 	if dataCrc[0] != crc[0] || dataCrc[1] != crc[1] {
 		return StatusRxCrcError
 	}
 
 	// Check for error
 	if p.buf[0] == 0x04 {
-		if err = mapCommandStatus(p.buf[1]); err != StatusSuccess {
+		if err = commandStatus(p.buf[1]); err != StatusSuccess {
 			return
 		}
 	}
 
 	//TODO: End retry loop
-
 	return nil
 }

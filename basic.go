@@ -19,3 +19,26 @@ func getAddress(zone uint8, slot uint16, block uint8, offset uint8) (address uin
 
 	return
 }
+
+func zoneSize(zone uint8, slot uint16) (size int, err error) {
+	switch zone {
+	case ATCA_ZONE_CONFIG:
+		size = 128
+	case ATCA_ZONE_OTP:
+		size = 64
+	case ATCA_ZONE_DATA:
+		if slot < 8 {
+			size = 36
+		} else if slot == 8 {
+			size = 416
+		} else if slot < 16 {
+			size = 72
+		} else {
+			return 0, StatusBadParam
+		}
+	default:
+		return 0, StatusBadParam
+	}
+
+	return
+}

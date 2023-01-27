@@ -172,7 +172,7 @@ func shaBase(t Transport, mode uint8, length uint16, message []byte) (data []byt
 		data = buf[ATCA_RSP_DATA_IDX : ATCA_RSP_DATA_IDX+count]
 		return
 	} else if count == 4 {
-		if err = mapCommandStatus(buf[ATCA_RSP_DATA_IDX]); err != StatusSuccess {
+		if err = commandStatus(buf[ATCA_RSP_DATA_IDX]); err != StatusSuccess {
 			return nil, err
 		}
 	}
