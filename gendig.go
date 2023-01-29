@@ -6,6 +6,9 @@ import (
 )
 
 func (d *Device) GenDig(zone uint8, keyId uint16, otherData []byte) (err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	if otherDataLen := len(otherData); otherDataLen != 0 && otherDataLen != ATCA_BLOCK_SIZE && otherDataLen != ATCA_WORD_SIZE {
 		return StatusBadParam
 	}

@@ -5,20 +5,8 @@ func (d *Device) Ecdh(keyId uint16, pubKey []byte) (pms []byte, err error) {
 		return nil, StatusBadParam
 	}
 
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	pms, _, err = ecdhBase(d.transport, ECDH_PREFIX_MODE, keyId, pubKey)
+	pms, _, err = d.EcdhExt(ECDH_PREFIX_MODE, keyId, pubKey)
 	return
-}
-
-func (d *Device) EcdhExt(mode uint8, keyId uint16, pubKey []byte) (pms []byte, nonce []byte, err error) {
-	if len(pubKey) == 0 {
-		return nil, nil, StatusBadParam
-	}
-
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	return ecdhBase(d.transport, mode, keyId, pubKey)
 }
 
 func (d *Device) EcdhEncrypted(keyId uint16, pubKey []byte, readKey []byte, readKeyId uint16, num []byte) (pms []byte, err error) {
@@ -34,12 +22,15 @@ func (d *Device) EcdhEncrypted(keyId uint16, pubKey []byte, readKey []byte, read
 	return d.ReadEncrypted(keyId|0x0001, 0, readKey, readKeyId, num)
 }
 
-func ecdhBase(t Transport, mode uint8, keyId uint16, pubKey []byte) (pms, nonce []byte, err error) {
+func (d *Device) EcdhExt(mode uint8, keyId uint16, pubKey []byte) (pms []byte, nonce []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	buf := make([]byte, ECDH_COUNT)
 	p := newEcdhCommand(buf, mode, keyId)
 	copy(p.data(), pubKey[:ATCA_PUB_KEY_SIZE])
 
-	if err = p.execute(t); err != nil {
+	if err = p.execute(d.transport); err != nil {
 		return
 	}
 

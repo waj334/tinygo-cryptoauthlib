@@ -29,19 +29,29 @@ func NewI2CTransport(deviceAddress uint8, bus I2C, baud uint32) Transport {
 }
 
 func (i *i2cTransport) Receive(wordAddress byte, data []byte) (err error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	return i.bus.ReadRegister(i.deviceAddress, wordAddress, data)
 }
 
 func (i *i2cTransport) Send(wordAddress byte, data []byte) (err error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	return i.bus.WriteRegister(i.deviceAddress, wordAddress, data)
 }
 
 func (i *i2cTransport) WakeUp() (err error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	err = StatusWakeFailed
-	for retry := 0; retry < 20; retry++ {
+	//for retry := 0; retry < 20; retry++ {
+	for {
 		// Set the bus speed to slow af. The device requires the SDA pin to be low for a specific amount of time
-		//i.bus.SetBaudRate(100_000)
-		i.bus.SetBaudRate(1)
+		i.bus.SetBaudRate(100_000)
+		//i.bus.SetBaudRate(1)
 
 		// Send zeros to wake the device
 		i.bus.WriteRegister(0x00, 0x00, []byte{0x00})
@@ -71,4 +81,12 @@ func (i *i2cTransport) WakeUp() (err error) {
 	}
 
 	return
+}
+
+func (i *i2cTransport) Idle() (err error) {
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
+	// Send 0x02 to put the device into the idle state if it is not busy.
+	return i.bus.WriteRegister(i.deviceAddress, 0x02, []byte{})
 }

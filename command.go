@@ -229,9 +229,18 @@ func (p *packet) execute(t Transport) (err error) {
 		wordAddress = 0x03
 	}
 
+	// Attempt to idle the device after command execution is complete
+	defer func(t Transport) {
+		if idleErr := t.Idle(); idleErr != nil {
+			println("Idle sequence failed:", idleErr)
+		}
+	}(t)
+
 	// TODO: Begin retry loop
 	// Wake up the device
-	t.WakeUp()
+	if wakeErr := t.WakeUp(); wakeErr != nil {
+		println("Wake sequence failed:", wakeErr)
+	}
 
 	// Send the command packet
 	if err = t.Send(wordAddress, p.buf[:p.count()]); err != nil {

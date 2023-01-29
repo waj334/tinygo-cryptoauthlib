@@ -1,13 +1,14 @@
 package cryptoauthlib
 
 type SHA256Context struct {
+	d           *Device
 	messageSize int
 	blockSize   int
 	block       [ATCA_BLOCK_SIZE]byte
 }
 
 func (s *SHA256Context) startSHA(t Transport) (err error) {
-	_, err = shaBase(t, SHA_MODE_SHA256_START, 0, nil)
+	_, err = s.d.ShaExt(SHA_MODE_SHA256_START, 0, nil)
 	return
 }
 
@@ -29,7 +30,7 @@ func (s *SHA256Context) updateSHA(t Transport, data []byte) (err error) {
 	}
 
 	// Process the current block
-	if _, err = shaBase(t, SHA_MODE_SHA256_UPDATE, 64, s.block[:]); err != nil {
+	if _, err = s.d.ShaExt(SHA_MODE_SHA256_UPDATE, 64, s.block[:]); err != nil {
 		return
 	}
 
@@ -37,7 +38,7 @@ func (s *SHA256Context) updateSHA(t Transport, data []byte) (err error) {
 	dataLen -= copyLen
 	blockCount := dataLen / ATCA_SHA256_BLOCK_SIZE
 	for i := 0; i < blockCount; i++ {
-		if _, err = shaBase(t, SHA_MODE_SHA256_UPDATE, 64, data[copyLen+i*ATCA_SHA256_BLOCK_SIZE:]); err != nil {
+		if _, err = s.d.ShaExt(SHA_MODE_SHA256_UPDATE, 64, data[copyLen+i*ATCA_SHA256_BLOCK_SIZE:]); err != nil {
 			return
 		}
 	}
@@ -53,11 +54,11 @@ func (s *SHA256Context) updateSHA(t Transport, data []byte) (err error) {
 func (s *SHA256Context) endSHA(t Transport) (digest []byte, err error) {
 	// NOTE: No support for ATSHA204A is considered. See calib_hw_sha2_256_finish in atca_sha.c. This method only ports
 	// what is in the else block.
-	return shaBase(t, SHA_MODE_SHA256_END, uint16(s.blockSize), s.block[:])
+	return s.d.ShaExt(SHA_MODE_SHA256_END, uint16(s.blockSize), s.block[:])
 }
 
 func (s *SHA256Context) startHMAC(t Transport, keySlot uint16) (err error) {
-	_, err = shaBase(t, SHA_MODE_HMAC_START, keySlot, nil)
+	_, err = s.d.ShaExt(SHA_MODE_HMAC_START, keySlot, nil)
 	return
 }
 
@@ -79,7 +80,7 @@ func (s *SHA256Context) updateHMAC(t Transport, data []byte) (err error) {
 	}
 
 	// Process the current block
-	if _, err = shaBase(t, SHA_MODE_HMAC_UPDATE, uint16(ATCA_SHA256_BLOCK_SIZE), s.block[:]); err != nil {
+	if _, err = s.d.ShaExt(SHA_MODE_HMAC_UPDATE, uint16(ATCA_SHA256_BLOCK_SIZE), s.block[:]); err != nil {
 		return
 	}
 
@@ -87,7 +88,7 @@ func (s *SHA256Context) updateHMAC(t Transport, data []byte) (err error) {
 	dataLen -= copyLen
 	blockCount := dataLen / ATCA_SHA256_BLOCK_SIZE
 	for i := 0; i < blockCount; i++ {
-		if _, err = shaBase(t, SHA_MODE_HMAC_UPDATE, uint16(ATCA_SHA256_BLOCK_SIZE), data[copyLen+i*ATCA_SHA256_BLOCK_SIZE:]); err != nil {
+		if _, err = s.d.ShaExt(SHA_MODE_HMAC_UPDATE, uint16(ATCA_SHA256_BLOCK_SIZE), data[copyLen+i*ATCA_SHA256_BLOCK_SIZE:]); err != nil {
 			return
 		}
 	}
@@ -100,18 +101,15 @@ func (s *SHA256Context) updateHMAC(t Transport, data []byte) (err error) {
 	return
 }
 
-func (s *SHA256Context) endHMAC(t Transport, target uint8) (digest []byte, err error) {
+func (s *SHA256Context) endHMAC(target uint8) (digest []byte, err error) {
 	// NOTE: No support for ATSHA204A is considered. See calib_sha_hmac_finish in atca_sha.c.
 
 	//For ATECC608, can be SHA_MODE_TARGET_TEMPKEY, SHA_MODE_TARGET_MSGDIGBUF, or SHA_MODE_TARGET_OUT_ONLY.
 	mode := SHA_MODE_608_HMAC_END | target
-	return shaBase(t, mode, uint16(s.blockSize), s.block[:])
+	return s.d.ShaExt(mode, uint16(s.blockSize), s.block[:])
 }
 
 func (d *Device) SHA256(input []byte) (output []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	var ctx SHA256Context
 	if err = ctx.startSHA(d.transport); err != nil {
 		return
@@ -128,9 +126,6 @@ func (d *Device) SHA256(input []byte) (output []byte, err error) {
 }
 
 func (d *Device) HMAC(input []byte, keySlot uint16, target uint8) (output []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	var ctx SHA256Context
 	if err = ctx.startHMAC(d.transport, keySlot); err != nil {
 		return
@@ -139,14 +134,17 @@ func (d *Device) HMAC(input []byte, keySlot uint16, target uint8) (output []byte
 		return
 	}
 
-	if output, err = ctx.endHMAC(d.transport, target); err != nil {
+	if output, err = ctx.endHMAC(target); err != nil {
 		return
 	}
 
 	return
 }
 
-func shaBase(t Transport, mode uint8, length uint16, message []byte) (data []byte, err error) {
+func (d *Device) ShaExt(mode uint8, length uint16, message []byte) (data []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	cmdMode := mode & SHA_MODE_MASK
 	if cmdMode != SHA_MODE_SHA256_PUBLIC && cmdMode != SHA_MODE_HMAC_START && length > 0 && message == nil {
 		return nil, StatusBadParam
@@ -163,7 +161,7 @@ func shaBase(t Transport, mode uint8, length uint16, message []byte) (data []byt
 	}
 
 	// Execute the command
-	if err = p.execute(t); err != nil {
+	if err = p.execute(d.transport); err != nil {
 		return
 	}
 

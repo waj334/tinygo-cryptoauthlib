@@ -113,9 +113,6 @@ func (d *Device) ReadConfigZone() (data []byte, err error) {
 }
 
 func (d *Device) ReadEncrypted(keyId uint16, block uint8, encKey []byte, encKeyId uint16, num []byte) (data []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	const zone = ATCA_ZONE_DATA | ATCA_ZONE_READWRITE_32
 	var sn [9]byte
 	var rand []byte

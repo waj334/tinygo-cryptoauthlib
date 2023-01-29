@@ -1,8 +1,6 @@
 package cryptoauthlib
 
 func (d *Device) GenKey(keyId uint16) (pubKey []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
 	return d.GenKeyExt(GENKEY_MODE_PRIVATE, keyId, nil)
 }
 
@@ -30,12 +28,13 @@ func (d *Device) GenKeyMac() (pubKey []byte, mac []byte, err error) {
 }
 
 func (d *Device) GetPublicKey(keyId uint16) (pubkey []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
 	return d.GenKeyExt(GENKEY_MODE_PUBLIC, keyId, nil)
 }
 
 func (d *Device) GenKeyExt(mode uint8, keyId uint16, otherData []byte) (pubKey []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	buf := make([]byte, ATCA_PUB_KEY_SIZE+ATCA_CMD_SIZE_MIN)
 	p := newGenKeyCommand(buf, mode, keyId)
 

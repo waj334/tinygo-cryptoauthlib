@@ -3,39 +3,24 @@ package cryptoauthlib
 import "crypto/sha256"
 
 func (d *Device) Challenge(num []byte) (err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	_, err = nonceBase(d.transport, NONCE_MODE_PASSTHROUGH, 0, num)
+	_, err = d.NonceExt(NONCE_MODE_PASSTHROUGH, 0, num)
 	return
 }
 
 func (d *Device) ChallengeSeedUpdate(num []byte) (output []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	return nonceBase(d.transport, NONCE_MODE_SEED_UPDATE, 0, num)
+	return d.NonceExt(NONCE_MODE_SEED_UPDATE, 0, num)
 }
 
 func (d *Device) Nonce(num []byte) (err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	_, err = nonceBase(d.transport, NONCE_MODE_PASSTHROUGH, 0, num)
+	_, err = d.NonceExt(NONCE_MODE_PASSTHROUGH, 0, num)
 	return
 }
 
 func (d *Device) GenSessionKey(param2 uint16, num []byte) (output []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	return nonceBase(d.transport, NONCE_MODE_GEN_SESSION_KEY, param2, num)
+	return d.NonceExt(NONCE_MODE_GEN_SESSION_KEY, param2, num)
 }
 
 func (d *Device) NonceLoad(target uint8, num []byte) (err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	mode := NONCE_MODE_PASSTHROUGH | (NONCE_MODE_TARGET_MASK & target)
 	switch len(num) {
 	case 32:
@@ -45,18 +30,18 @@ func (d *Device) NonceLoad(target uint8, num []byte) (err error) {
 	default:
 		return StatusBadParam
 	}
-	_, err = nonceBase(d.transport, mode, 0, num)
+	_, err = d.NonceExt(mode, 0, num)
 	return
 }
 
 func (d *Device) NonceRand(num []byte) (output []byte, err error) {
+	return d.NonceExt(NONCE_MODE_SEED_UPDATE, 0, num)
+}
+
+func (d *Device) NonceExt(mode uint8, param2 uint16, num []byte) (result []byte, err error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	return nonceBase(d.transport, NONCE_MODE_SEED_UPDATE, 0, num)
-}
-
-func nonceBase(t Transport, mode uint8, param2 uint16, num []byte) (result []byte, err error) {
 	buf := make([]byte, NONCE_COUNT_LONG_64)
 	p := newNonceCommand(buf, mode, param2)
 
@@ -73,7 +58,7 @@ func nonceBase(t Transport, mode uint8, param2 uint16, num []byte) (result []byt
 		return nil, StatusBadParam
 	}
 
-	if err = p.execute(t); err != nil {
+	if err = p.execute(d.transport); err != nil {
 		return
 	}
 

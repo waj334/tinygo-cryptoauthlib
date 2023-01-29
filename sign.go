@@ -28,18 +28,11 @@ func (d *Device) Sign(keyId uint16, message []byte) (signature []byte, err error
 		return
 	}
 
-	// Acquire the lock now
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	// Sign the message
-	return signBase(d.transport, uint8(SIGN_MODE_EXTERNAL|signSource), keyId)
+	return d.SignExt(uint8(SIGN_MODE_EXTERNAL|signSource), keyId)
 }
 
 func (d *Device) SignInternal(keyId uint16, invalidate bool, fullSerialNumber bool) (signature []byte, err error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	mode := SIGN_MODE_INTERNAL
 
 	if invalidate {
@@ -50,14 +43,17 @@ func (d *Device) SignInternal(keyId uint16, invalidate bool, fullSerialNumber bo
 		mode |= SIGN_MODE_INCLUDE_SN
 	}
 
-	return signBase(d.transport, uint8(mode), keyId)
+	return d.SignExt(uint8(mode), keyId)
 }
 
-func signBase(t Transport, mode uint8, keyId uint16) (signature []byte, err error) {
+func (d *Device) SignExt(mode uint8, keyId uint16) (signature []byte, err error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	buf := make([]byte, 64+ATCA_CMD_SIZE_MIN)
 	p := newSignCommand(buf, mode, keyId)
 
-	if err = p.execute(t); err != nil {
+	if err = p.execute(d.transport); err != nil {
 		return
 	}
 
