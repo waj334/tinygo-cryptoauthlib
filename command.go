@@ -14,7 +14,7 @@ func newReadCommand(buf []byte) *packet {
 	}
 
 	p.setOpcode(ATCA_READ)
-	p.setCount(uint8(ATCA_CMD_SIZE_MIN))
+	p.setCount(READ_COUNT)
 	return p
 }
 
