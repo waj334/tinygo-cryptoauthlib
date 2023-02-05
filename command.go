@@ -236,7 +236,6 @@ func (p *packet) execute(t Transport) (err error) {
 		}
 	}(t)
 
-	// TODO: Begin retry loop
 	// Wake up the device
 	if wakeErr := t.WakeUp(); wakeErr != nil {
 		println("Wake sequence failed:", wakeErr)
@@ -245,14 +244,6 @@ func (p *packet) execute(t Transport) (err error) {
 	// Send the command packet
 	if err = t.Send(wordAddress, p.buf[:p.count()]); err != nil {
 		return err
-	}
-
-	//TODO: End retry loop
-
-	// TODO: Begin retry loop
-	// Zero-out the data buffer
-	for i := range p.buf {
-		p.buf[i] = 0
 	}
 
 	// The result is likely to NOT be ready to receive right away. Delay for some time
@@ -307,6 +298,5 @@ func (p *packet) execute(t Transport) (err error) {
 		}
 	}
 
-	//TODO: End retry loop
 	return nil
 }

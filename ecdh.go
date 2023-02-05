@@ -34,13 +34,15 @@ func (d *Device) EcdhExt(mode uint8, keyId uint16, pubKey []byte) (pms []byte, n
 		return
 	}
 
-	if buf[ATCA_COUNT_IDX] >= uint8(3+ATCA_KEY_SIZE) {
+	count := int(buf[ATCA_COUNT_IDX])
+	if count >= 3+ATCA_KEY_SIZE {
 
 		pms = buf[ATCA_RSP_DATA_IDX : ATCA_RSP_DATA_IDX+ATCA_KEY_SIZE]
 	}
 
-	if buf[ATCA_COUNT_IDX] >= uint8(3+ATCA_KEY_SIZE) {
-		nonce = buf[ATCA_RSP_DATA_IDX+ATCA_KEY_SIZE : ATCA_RSP_DATA_IDX+(ATCA_KEY_SIZE*2)]
+	if count >= 3+ATCA_KEY_SIZE*2 {
+		pos := ATCA_RSP_DATA_IDX + ATCA_KEY_SIZE
+		nonce = buf[pos : pos+ATCA_KEY_SIZE]
 	}
 
 	return
